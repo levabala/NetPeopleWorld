@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>NetPeopleWorld</title>
+    <style>
+        .chat{
+            width: 60%;
+            border: dashed 1px #555500;
+            padding: 5px;
+        }
+        .chatBox{
+            width: 90%;
+            margin-left: 2%;
+            margin-right: 2%;
+        }
+        .messaging{
+            margin-left: 2%;
+            margin-right: 2%;
+        }
+        .red{
+            border: dashed 1px #555500;
+            padding: 4px;
+            margin: 4px;
+            font-style: italic;
+            color: red;
+        }
+        .green{
+            border: dashed 1px #555500;
+            margin: 4px;
+            padding: 4px;
+            font-style: italic;
+            color: green;
+        }
+        .orange{
+            border: dashed 1px #555500;
+            margin: 4px;
+            padding: 4px;
+            font-style: italic;
+            color: orange;
+        }
+        .bigButton{
+            padding: 5px;
+        }
+    </style>
+</head>
+<body onkeydown="keyChecking()" onmouseup="clearInterval(increaseInterval);clearInterval(reductionInterval);">
+<h1>NetPeopleWorld</h1>
+<!--
+<div class="chat">
+    <textarea class="chatBox" id="chat" style="border: solid black 1px;resize: none;position: relative" cols="50" rows="14" readonly="readonly">
+    *** Chat ***     (Temporary isn't working)
+    </textarea>
+    <br>
+    <div class="messaging">
+        <input type="text" id="messageBox" size="56" onkeydown="" >
+        <input type="button" id="sendMessage" onclick="" value="Отправить">
+        <input id="CE" type="radio" onchange="" checked>Отсылка на Ctrl+Enter
+        <input id="E" type="radio" onchange="">Отсылка на Enter
+    </div>
+</div>
+<br>Enter a name(ip) of connection target: <input id="ConnectTarget" type="text" size="56" onkeydown="createConnection(this.value)">
+<br>
+<br>
+-->
+Select target in the list of connections:
+<select size="5" id="connectionsList">
+    <option>127.0.0.1</option>
+    <option>Юрик</option>
+    <option>Деда</option>
+    <option>Где-то_В_Дании</option>
+    <option>Где-то_В_Великобритании</option>
+    <option>Где-то_В_Литве</option>
+</select><a id="result"></a>
+<br>
+<br>
+<input class="bigButton" type="button" value="Увеличить" onmousedown="increaseScale()">
+<input class="bigButton" type="button" value="Уменьшить" onmousedown="reductionScale()">
+<br>
+
+<div id="canvasDiv">
+    <canvas id='canvas' height="350" style="border: dotted black 3px;"></canvas>
+</div>
+
+<script>
+    //getting objects from DOM-elements
+    var CtrlEnterBox = document.getElementById("CE");
+    var EnterBox = document.getElementById("E");
+    var chatBox = document.getElementById('chat');
+    var messageBox = document.getElementById('messageBox');
+    var canvas = document.getElementById('canvas');
+    var connectionTargetBox = document.getElementById('ConnectTarget');
+    var resultOfConnection = document.getElementById('result');
+    var canDiv = document.getElementById('canvasDiv');
+    var connectionsList = document.getElementById('connectionsList');
+
+    //triggers and key listening
+    function CtrlEnter(){
+        EnterBox.checked = false;
+    }
+    function Enter(){
+        CtrlEnterBox.checked = false;
+    }
+    function keys(){
+        //property
+        this.whiches = [];
+        //functions
+        this.down = function(key){
+            this.whiches[key] = true;
+        };
+        this.up = function(key){
+            this.whiches[key] = false;
+        };
+        this.isDown = function(key){
+            return (this.whiches[key] == true);
+        }
+    }
+
+    //Event Listeners
+    document.addEventListener('keydown', function(e){ks.down(e.which);});
+    document.addEventListener('keyup', function(e){ks.up(e.which);});
+    document.addEventListener("wheel", scaling);
+    connectionsList.addEventListener('change',
+            function(e){createConnection(connectionsList.options[connectionsList.selectedIndex].value)});
+    window.addEventListener('resize', function(e){resizeTheCanvas()});
+
+    //getting a position
+    var gettingTimeout;
+    if (navigator.geolocation) {
+        console.log('getting location...');
+        navigator.geolocation.getCurrentPosition(sendPosition);
+
+        gettingTimeout = setTimeout(function(){alert('Не удаётся получить доступ к геоданным.' +
+        ' Проверьте доступ к ним в настройках браузера. Страница будет перезагружена. Если сообщение останется, ' +
+        'закройте и заново откройте вкладку или перезагрузить браузер. ' +
+        '\nP.S. Вот такая вот нестабильность');location.reload();}, 10000);
+
+    }
+    else alert('Ваше устройство не даёт доступа к геоданным... :(');
+
+    //set global variables
+    var myPosition = {};
+    var ctx = canvas.getContext('2d');
+    var ks = new keys();
+    var scale = 10000;
+    var scaleCoeff = 2;
+    var I = {};          //a your variable(with your graph)   **All here is your :)
+
+    //set variables-controllers
+    var updatingTimeout = 1000;  //duration between data request to the server
+
+    //set the size of the canvas
+    resizeTheCanvas();
+
+    //let's draw!
+    setInterval(function(){draw();}, 500);
+
+    //set a color of your graph
+    var r_a = "0.05";           //alpha
+    var color = "rgba(32, 45, 21, " + r_a + ")";
+
+    //the main function of DRAWING
+    function draw(){
+        //We shouldn't draw you if you are nothing :)
+        if (I.size == null) {
+            console.log('You are empty');
+            return;
+        }
+
+        //clearing the canvas
+        ctx.clearRect(-canvas.width/2,-canvas.height/2,canvas.width*1.5,canvas.height*1.5);
+
+        //draw connections
+        ctx.beginPath();
+        for (var c in I.connections){
+            var graph = I.connections[c];
+            drawConnection(I.pos, graph.pos);
+            drawGraph(graph);
+        }
+        ctx.closePath();
+
+        //drawing your graph
+        drawGraph(I);
+    }
+
+    function drawConnection(pos1, pos2){
+        pos1 = invertPos(pos1);
+        pos2 = invertPos(pos2);
+        ctx.beginPath();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'green';
+        ctx.moveTo(pos1.x, pos1.y);
+        ctx.lineTo(pos2.x, pos2.y);
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    function invertPos(pos){return {x: (pos.x - I.pos.x) * scale, y: (pos.y - I.pos.y) * -scale};}
+
+    function drawGraph(gr){
+        var iPos = invertPos(gr.pos);
+        var x = iPos.x;
+        var y = iPos.y;
+        ctx.beginPath();
+        ctx.fillStyle = color;
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 3;
+        ctx.arc(x, y, gr.size, 0, Math.PI*2, false);
+        ctx.fill();
+        ctx.stroke();
+        ctx.closePath();
+        ctx.beginPath();
+        ctx.arc(x, y, 1, 0, Math.PI*2, false);
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    //second-level functions
+    function keyChecking(){
+        ks.down(window.event.which);
+        if (ks.isDown(107)){ //+
+            scale *= scaleCoeff;
+        }
+        else if (ks.isDown(109)){ //-
+            scale /= scaleCoeff;
+        }
+        draw();
+    }
+
+    function sendPosition(pos){
+        console.log('sending position...');
+
+        //clear timeout
+        clearTimeout(gettingTimeout);
+
+        //sending position
+        var position = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude
+        };
+        myPosition = {
+            y: position.latitude,
+            x: position.longitude
+        };
+        console.log("Your position: " + JSON.stringify(position));
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/newUser', true);
+        xhr.send(JSON.stringify(position));
+        xhr.onload = function(){  //after successful posting we can get the data
+            dataGetting();
+        };
+    }
+
+    var errorCounter = 0;
+    function dataGetting(){
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/updating', true);  //request for getting information about graphs
+        xhr.onload = function(){
+            errorCounter = 0;
+            I = JSON.parse(this.responseText);
+            setTimeout(dataGetting, updatingTimeout);
+        };
+        xhr.onerror = function(){
+            errorCounter ++;
+            console.warn('Some error... but not very important error');
+            if (errorCounter > 5) console.error('SERVER IS NOT RESPONDING');
+            setTimeout(dataGetting, 100);
+        };
+        xhr.send();
+    }
+
+    var connectionStatusTimeout;
+    function createConnection(ip){
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/newConnection', true);
+        xhr.onload = function(){
+            clearTimeout(connectionStatusTimeout);
+            resultOfConnection.innerHTML = this.responseText;
+            if (xhr.status == 200) resultOfConnection.className = 'green';
+            else if (xhr.status == 201) resultOfConnection.className = 'red';
+            else resultOfConnection.className = 'orange';
+            connectionStatusTimeout = setTimeout(function(){
+                resultOfConnection.innerHTML = null;
+                resultOfConnection.className = null;
+            }, 2000);
+        };
+        xhr.send(ip.toString());
+        //connectionTargetBox.value = "";
+    }
+
+    function scaling(wheel){  //for changing the offsets
+        var delta = wheel.wheelDelta;
+    }
+
+    function resizeTheCanvas(){
+        canvas.width = canDiv.offsetWidth;
+        //canvas.height = screen.height - canvas.getBoundingClientRect().top;
+        ctx = canvas.getContext('2d');
+
+        //translating ctx to the center
+        ctx.translate(canvas.width/2, canvas.height/2);
+    }
+
+    var increaseInterval;
+    var reductionInterval;
+    function increaseScale(){
+        scale *= scaleCoeff;
+        draw();
+        increaseInterval = setInterval(function(){scale *= scaleCoeff;draw();console.log(scale);}, 100);
+    }
+    function reductionScale(){
+        scale /= scaleCoeff;
+        draw();
+        reductionInterval = setInterval(function(){scale /= scaleCoeff;draw();console.log(scale);}, 100);
+    }
+</script>
+</body>
+</html>

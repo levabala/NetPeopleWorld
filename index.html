@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>NetPeopleWorld</title>
+    <style>
+        .chat{
+            width: 60%;
+            border: dashed 1px #555500;
+            padding: 5px;
+        }
+        .chatBox{
+            width: 90%;
+            margin-left: 2%;
+            margin-right: 2%;
+        }
+        .messaging{
+            margin-left: 2%;
+            margin-right: 2%;
+        }
+        .red{
+            border: dashed 1px #555500;
+            padding: 4px;
+            margin: 4px;
+            font-style: italic;
+            color: red;
+        }
+        .green{
+            border: dashed 1px #555500;
+            margin: 4px;
+            padding: 4px;
+            font-style: italic;
+            color: green;
+        }
+        .orange{
+            border: dashed 1px #555500;
+            margin: 4px;
+            padding: 4px;
+            font-style: italic;
+            color: orange;
+        }
+        .bigButton{
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+<canvas id='canvas' style="border: dotted black 3px;position: absolute;left: 1%;top:1%;bottom: 3%;right: 3%;"></canvas>
+<script>
+    //getting objects from DOM-elements
+    var canvas = document.getElementById('canvas');
+    var canvasDiv = document.getElementById('canvasDiv');
+
+    //set global variables
+    var ctx = canvas.getContext('2d');
+    var I = {}; //your graph
+    var scale = 10000;
+    var scaleCoeff = 1.2;
+
+    //set a color of your graph
+    var r_a = "0.06";           //alpha
+    var color = "rgba(32, 45, 21, " + r_a + ")";
+
+    //final preparations for DOM-elements
+    resizeTheCanvas();
+
+    //setListeners
+    window.onresize = function(){resizeTheCanvas()};
+    document.addEventListener('wheel', scaling);
+
+    //getting your position
+    var gettingTimeout;  //timeout for controlling the time of getting the location
+    if (navigator.geolocation) {
+        console.log('getting location...');
+        navigator.geolocation.getCurrentPosition(function(pos){
+            console.log('sending position...');
+            clearTimeout(gettingTimeout);
+
+            //transforming position to readable state
+            pos = {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude
+            };
+            I = {
+                x: pos.longitude,
+                y: pos.latitude
+            };
+
+            new POSTRequest('/newUser', pos,
+                    function(answer){
+                        console.log(answer);
+                        //in case of success we start circle updating
+                        updating();
+                        setInterval(function(){updating();},1000);
+                    }
+            );
+        });
+
+        gettingTimeout = setTimeout(function(){alert('Не удаётся получить доступ к геоданным.' +
+        ' Проверьте доступ к ним в настройках браузера. Страница будет перезагружена. Если сообщение останется, ' +
+        'закройте и заново откройте вкладку или перезагрузить браузер. ' +
+        '\nP.S. Вот такая вот нестабильность');location.reload();}, 10000);
+    }
+    else alert('Ваше устройство не даёт доступа к геоданным... :(');
+
+    //data updating
+    function updating(){
+        new GETRequest('/updating',
+                function(response){
+                    response = JSON.parse(response);
+                    var graph = response.graph;
+                    if (typeof graph == 'object' && graph.pos != null) {
+                        I = graph;
+                        draw();
+                    }
+                },
+                function(err){
+                    console.warn('Some error: ' + err);
+                });
+    }
+
+    //working with connections to other graphs
+    function createConnection(ip){
+        new POSTRequest('/newConnection', ip,
+                function(res){
+                    console.log(res);
+                    updating();
+                },
+                function(res){
+                    console.log(res);
+                }, true);
+    }
+    function closeConnection(ip){
+        new POSTRequest('/closeConnection', ip,
+                function(res){
+                    console.log(res);
+                    updating();
+                },
+                function(res){
+                    console.log(res);
+                }, true);
+    }
+
+    //painting on the canvas
+    function draw(){
+        //clearing the canvas
+        ctx.clearRect(-canvas.width/2,-canvas.height/2,canvas.width*1.5,canvas.height*1.5);
+
+        //draw connections
+        ctx.beginPath();
+        for (var c in I.connections){
+            var graph = I.connections[c];
+            drawConnection(I.pos, graph.pos);
+            drawGraph(graph);
+        }
+        ctx.closePath();
+
+        //drawing your graph
+        drawGraph(I);
+    }
+
+    //for changing the scale
+    function scaling(wheel){
+        var delta = wheel.wheelDelta;
+        if (delta > 0) scale *= scaleCoeff;
+        else scale /= scaleCoeff;
+        draw();
+    }
+
+    //some very useful functions for drawing
+    function drawConnection(pos1, pos2){
+        pos1 = invertPos(pos1);
+        pos2 = invertPos(pos2);
+        ctx.beginPath();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'green';
+        ctx.moveTo(pos1.x, pos1.y);
+        ctx.lineTo(pos2.x, pos2.y);
+        ctx.stroke();
+        ctx.closePath();
+    }
+    function invertPos(pos){
+        return {x: (pos.x - I.pos.x) * scale, y: (pos.y - I.pos.y) * -scale};
+    }
+    function drawGraph(gr){
+        var iPos = invertPos(gr.pos);
+        var x = iPos.x;
+        var y = iPos.y;
+        ctx.beginPath();
+        ctx.fillStyle = color;
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 3;
+        ctx.arc(x, y, gr.connectionsCount * 2 + 5, 0, Math.PI*2, false);
+        ctx.fill();
+        ctx.stroke();
+        ctx.closePath();
+        ctx.beginPath();
+        ctx.arc(x, y, 1, 0, Math.PI*2, false);
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    //function for resizing the canvas
+    function resizeTheCanvas(){
+        //I need to change it
+        canvas.width = window.innerWidth - window.innerWidth*0.04;
+        canvas.height = window.innerHeight - window.innerHeight*0.07;
+
+        //translating ctx to the center
+        ctx.translate(canvas.width/2, canvas.height/2);
+    }
+
+    //classes for two types of request
+    function GETRequest(request, funL, funE){
+        var onloadFunction = funL;
+        var onerrorFunction = funE;
+
+        if (typeof onerrorFunction != 'function') onerrorFunction = function(){};
+        if (typeof onloadFunction != 'function') onloadFunction = function(){};
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', request, true);
+        xhr.onload = function(){onloadFunction(this.responseText);};
+        xhr.onerror = function(){onerrorFunction(this.responseText)};
+        xhr.send();
+    }
+    function POSTRequest(request, data, funL, funE){
+        var sData;
+        if (typeof data == 'object') sData = JSON.stringify(data);
+        else sData = data;
+
+        var onloadFunction = funL;
+        var onerrorFunction = funE;
+
+        if (typeof onerrorFunction != 'function') onerrorFunction = function(){};
+        if (typeof onloadFunction != 'function') onloadFunction = function(){};
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', request, true);
+        xhr.onload = function(){onloadFunction(this.responseText);};
+        xhr.onerror = function(){onerrorFunction(this.responseText)};
+        xhr.send(sData);
+    }
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
