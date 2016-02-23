@@ -1,0 +1,52 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "JSONserver",
+			"type": "node",
+			"request": "launch",
+			"program": "${workspaceRoot}/server.js",
+			"stopOnEntry": false,
+			"args": [],
+			"cwd": "${workspaceRoot}",
+			"runtimeExecutable": null,
+			"runtimeArgs": [
+				"--nolazy"
+			],
+			"env": {
+				"NODE_ENV": "development"
+			},
+			"externalConsole": false,
+			"sourceMaps": false,
+			"outDir": null
+		},{
+			"name": "Mongodb",
+			"type": "node",
+			"request": "launch",
+			"program": "${workspaceRoot}/SocketTesting/server.js",
+			"stopOnEntry": false,
+			"args": [],
+			"cwd": "${workspaceRoot}",
+			"runtimeExecutable": null,
+			"runtimeArgs": [
+				"--nolazy"
+			],
+			"env": {
+				"NODE_ENV": "development"
+			},
+			"externalConsole": false,
+			"sourceMaps": false,
+			"outDir": null
+		},
+		{
+			"name": "Attach",
+			"type": "node",
+			"request": "attach",
+			"port": 5858,
+			"sourceMaps": false,
+			"outDir": null,
+			"localRoot": "${workspaceRoot}",
+			"remoteRoot": null
+		}
+	]
+}

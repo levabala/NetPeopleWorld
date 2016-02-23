@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>    
+    <meta name="google-site-verification" content="Dfqr9D5D6PkXo4n_62n57kkrvyppc3qbyLglSlSLoEQ" />
+    <meta charset="utf-8"/>
+    <title>Sockets testing</title>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+</head>
+<body>    
+    <script>
+        //jQuery traning         
+    </script>
+    <script>         
+    var socket = new WebSocket('ws://localhost:3000');
+    
+    socket.onopen = function() {
+    alert("Соединение установлено.");
+    };
+
+    socket.onclose = function(event) {
+    if (event.wasClean) {
+        alert('Соединение закрыто чисто');
+    } else {
+        alert('Обрыв соединения'); // например, "убит" процесс сервера
+    }
+    alert('Код: ' + event.code + ' причина: ' + event.reason);
+    };
+
+    socket.onmessage = function(event) {
+    alert("Получены данные " + event.data);
+    };
+
+    socket.onerror = function(error) {
+    alert("Ошибка " + error.message);
+    };
+    </script>
+</body>
+</html>        
+    

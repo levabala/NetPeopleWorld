@@ -4,16 +4,6 @@
     <style type="text/css">
         html, body { height: 100%; margin: 0; padding: 0; }
         #map { height: 100%; }
-        .availableDiv{
-            position: absolute;
-            background-color: white;
-            padding: 4px;
-            top: 80px;
-            left: 10px;
-        }
-        .availableConnections{
-            padding: 4px;
-        }
         .onoffswitch {
             position: relative; width: 128px;
             margin: auto;
@@ -62,17 +52,66 @@
             right: 0px;
         }
     </style>
+    <style type="text/css">
+        .availableDiv{
+            position: absolute;
+            background-color: white;
+            padding: 4px;
+            top: 80px;
+            left: 10px;
+            width: 30%;
+        }
+        .lastupdates{
+            position: absolute;
+            background-color: white;
+            padding: 4px;
+            top: 50%;
+            left: 10px;
+            width: 30%;
+        }
+        .availableConnections{
+            padding: 4px;
+        }
+        actionBox{
+            position: relative;
+            border: solid black 2px;
+            border-radius: 25%;
+            background-color: whitesmoke;
+            padding: 7px;
+            margin-left: 4px;
+            margin-right: 4px;
+            transition-property: background-color;
+            transition-duration: 500ms;
+        }
+        actionBox:hover{
+            background-color: lightgreen;
+        }
+        actionsList{
+            position: absolute;
+            border: groove darkorange 4px;
+            border-radius: 15%;
+            background-color: orange;
+            padding: 2px;
+        }
+        .lineInList{
+            position: relative;
+            margin: auto;
+            padding: 8px;
+            text-align: center;
+            background-color: transparent;
+        }
+    </style>
     <meta name="google-site-verification" content="Dfqr9D5D6PkXo4n_62n57kkrvyppc3qbyLglSlSLoEQ" />
     <meta charset="utf-8"/>
-    <title>NetPeopleWorld</title>
+    <title>GOD MODE</title>
 </head>
 <body>
 <script async defer
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCSwh6bCxZvlilWJ6SY33QPV9zDZlL0298&callback=initMap">
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCQfgpFcSzoIVNICqYot1Y5axv5wd9KRjw&callback=initMap">
 </script>
 <div id="map"></div>
-<div class="availableDiv">
-    <h4 style="margin-bottom:4px;margin-top:4px">Список доступных графов:</h4>
+<div class="availableDiv" id="workDiv">
+    <h4 style="margin-bottom:4px;margin-top:4px">Список доступных пользователей:</h4>
     <select id="available" class="availableConnections" size='10' onchange="if (this.selectedIndex != -1) createConnection(this.options[this.selectedIndex].value)"></select>
     <div class="onoffswitch">
         <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="myonoffswitch" onchange="changePrivacy(this.checked);updatePublicList()">
@@ -82,22 +121,71 @@
         </label>
     </div>
 </div>
+<div class="lastupdates" id="lastupdates">
+    <h4 style="margin-bottom:4px;margin-top:4px;padding: 5px">Последние обновления</h4>
+    <hr>
+    <ul>
+        <li style="margin-left: -20px">Добавлен выбор действий по клику на граф (пока работает только на десктопной версии)</li>
+        <hr>
+        <li style="margin-left: -20px">Реализована возможность "лайка" пользователя (через выбор действий). Это влияет на его размеры</li>
+        <hr>
+    </ul>
+</div>
 <script type="text/javascript">
     //DOM-elements
     var select = document.getElementById('available');
     var publicSwitch = document.getElementById('myonoffswitch');
+    var workDiv = document.getElementById('workDiv');
+    var mapDiv = document.getElementById('map');
 
     //global variables
     var map;
     var MyPos;
     var MyIP;
     var objects = {};
+    var actions = [];
+
+    actions['reveal'] = {
+        doWith: function(gr){
+            console.log('reveal');
+        }
+    };
+
+    actions['delete'] = {
+        doWith: function(gr){
+            console.log('delete');
+        }
+    };
+
+    actions['block'] = {
+        doWith: function(gr){
+            console.log('block');
+        }
+    };
+
+    actions['chat'] = {
+        doWith: function(gr){
+            console.log('chat');
+        }
+    };
+
+    actions['hide'] = {
+        doWith: function(gr){
+            console.log('hide');
+        }
+    };
+
+    actions['like'] = {
+        doWith: function(gr){
+            new POSTRequest('/like', gr.nick, function(res){console.log(res);updateGraph(gr.nick);});
+        }
+    };
 
     //start initialization with getting a location
     function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
             center: {lat: 0, lng: 0},
-            zoom: 14
+            zoom: 16
         });
 
         //getting your position
@@ -111,8 +199,10 @@
                 var latlng = {lat: pos.coords.latitude, lng: pos.coords.longitude};
                 MyPos = latlng;
                 map.setCenter(new google.maps.LatLng(latlng.lat, latlng.lng));
+                
+                console.log(latlng);
 
-                new POSTRequest('/newUser_G', latlng,
+                new POSTRequest('/newUser', latlng,
                         function (answer) {
                             console.log(answer);
                             //in case of success we start circle updating
@@ -160,6 +250,8 @@
                             select.options[select.options.length] = new Option(available[a], available[a]);
                         }
                     }
+
+                    document.addEventListener('mouseup', function(){deleteActionList()});
                 },
                 function(res){console.warn(res)}
         );
@@ -182,27 +274,93 @@
                         }
                     }
                 },
-                function(res){console.warn(res)}
+                function(res){console.warn(res);}
         );
     }
+
+    //choosing an action for graph
+    function giveActionListFor(gr){
+        deleteActionList(true);
+        var cords = {x: window.event.clientX, y: window.event.clientY};
+        var list = document.createElement('actionsList');
+        list.id = 'actionsList';
+        mapDiv.appendChild(list);
+        var counter = 0;
+        var lines = [];
+        lines[0] = document.createElement('div');
+        lines[0].id = lines.length-1;
+        for (var a in actions){
+            if (counter != 0 && counter % 3 == 0) {
+                lines[lines.length-1].className = 'lineInList';
+                list.appendChild(lines[lines.length-1]);
+                list.appendChild(document.createElement('br'));
+                lines[lines.length] = document.createElement('div');
+                lines[lines.length-1].id = lines.length-1;
+                lines[lines.length-1].className = 'lineInList';
+                console.log(lines)
+            }            
+            actions[a].dom = document.createElement('actionBox');
+            actions[a].dom.innerHTML = a;
+            actions[a].dom.id = a;
+            lines[lines.length-1].appendChild(actions[a].dom);
+
+            actions[a].dom.addEventListener('click',function(){
+                actions[this.id].doWith(gr);
+                deleteActionList(true)
+            });
+
+            counter++;
+        }
+        list.appendChild(lines[lines.length-1]);
+        list.style.top = (cords.y - list.offsetHeight-10) + 'px';
+        list.style.left = (cords.x - list.offsetWidth/2) + 'px';
+        map.setOptions({draggable: false});
+    }
+
+    var deleteTimeOut;
+    function deleteActionList(now){
+        var list = document.getElementById('actionsList');
+        if (list == null) return;
+        clearTimeout(deleteTimeOut);
+        if (now) {
+            mapDiv.removeChild(list);
+            map.setOptions({draggable: true})
+            return;
+        }
+        deleteTimeOut = setTimeout(function(){
+            mapDiv.removeChild(list);
+            map.setOptions({draggable: true})
+        }, 63500);
+    }
+
 
     //create Circle object for Google Maps
     function createMapsGraph(gr, nick){
         if (typeof gr.connectionsCount == 'undefined') gr.connectionsCount = 0;
+        console.log(gr);
+        var color = '#FF0000';
+        if (gr.activityTimeout < 0) color = 'lightgray';
         var circle = new google.maps.Circle({
-            strokeColor: '#FF0000',
+            strokeColor: color,
             strokeOpacity: 0.8,
             strokeWeight: 2,
-            fillColor: '#FF0000',
+            fillColor: color,
             fillOpacity: 0.35,
             map: map,
             center: gr.pos,
-            radius: (gr.connectionsCount+1)*10
+            radius: (gr.connectionsCount+1)*10 + gr.likes.length*10
         });
-        console.log(gr.connectionsCount);
         circle.setMap(map);
-        if (nick == null) objects[gr.ip] = circle;
-        else objects[nick] = circle;
+        if (nick != 'temp') google.maps.event.addListener(circle, 'mousedown', function(){giveActionListFor(this)});
+        else return circle;
+        if (nick == null) {
+            objects[gr.ip] = circle;
+            circle.nick = gr.ip;
+        }
+        else {
+            objects[nick] = circle;
+            circle.nick = nick;
+        }
         return circle;
     }
 
@@ -218,7 +376,10 @@
 
             var circle = createMapsGraph(graph, 'temp');
             oldGr.setMap(null);
-            objects[ip] = circle;
+            oldGr = createMapsGraph(graph, graph.ip);
+            oldGr.setMap(map);
+            circle.setMap(null);
+            console.log(objects)
             delete objects['temp'];
         }, function(){});
     }
@@ -282,9 +443,10 @@
 
         var xhr = new XMLHttpRequest();
         xhr.open('GET', request, true);
-        xhr.onload = function(){onloadFunction(this.responseText);};
-        xhr.onerror = function(){onerrorFunction(this.responseText)};
-        xhr.send();
+        xhr.onload = function(){if (xhr.status == 299)location.reload();onloadFunction(this.responseText);};
+        xhr.onerror = function(){if (xhr.status == 299)location.reload();onerrorFunction(this.responseText)};
+
+        xhr.send();              
     }
     function POSTRequest(request, data, funL, funE){
         var sData;

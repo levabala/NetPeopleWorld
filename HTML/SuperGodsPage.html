@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html>
+<head>    
+    <meta name="google-site-verification" content="Dfqr9D5D6PkXo4n_62n57kkrvyppc3qbyLglSlSLoEQ" />
+    <meta charset="utf-8"/>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <title>GOD  m o d e</title>
+    <style type="text/css">
+        html, body { height: 100%; margin: 0; padding: 0; }
+        #map { height: 100%; }
+        .onoffswitch {
+            position: relative; width: 128px;                        
+            margin: 10px;
+            margin-bottom: 4px;
+            -webkit-user-select:none; -moz-user-select:none; -ms-user-select: none;
+        }
+        .onoffswitch-checkbox {
+            display: none;
+        }
+        .onoffswitch-label {
+            display: block; overflow: hidden; cursor: pointer;
+            border: 2px solid #999999; border-radius: 12px;
+        }
+        .onoffswitch-inner {
+            display: block; width: 200%; margin-left: -100%;
+            transition: margin 0.3s ease-in 0s;
+        }
+        .onoffswitch-inner:before, .onoffswitch-inner:after {
+            display: block; float: left; width: 50%; height: 30px; padding: 0; line-height: 30px;
+            font-size: 14px; color: white; font-family: Trebuchet, Arial, sans-serif; font-weight: bold;
+            box-sizing: border-box;
+        }
+        .onoffswitch-inner:before {
+            content: "Я публичен";
+            padding-left: 8px;
+            background-color: #50C92B; color: #FFFFFF;
+        }
+        .onoffswitch-inner:after {
+            content: "Я приватен";
+            padding-right: 8px;
+            background-color: #3842C9; color: #EBA475;
+            text-align: right;
+        }
+        .onoffswitch-switch {
+            display: block; width: 19px; margin: 5.5px;
+            background: #FFFFFF;
+            position: absolute; top: 0; bottom: 0;
+            right: 94px;
+            border: 2px solid #999999; border-radius: 12px;
+            transition: all 0.3s ease-in 0s;
+        }
+        .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
+            margin-left: 0;
+        }
+        .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
+            right: 0px;
+        }
+    </style>
+    <style type="text/css">
+        .availableDiv{
+            position: relative;
+            background-color: white;
+            padding: 4px;            
+            left: 10px;
+            width: 20%;
+        }
+        .lastupdates{
+            position: relative;
+            background-color: white;
+            padding: 4px;     
+            margin-top: 20px;        
+            left: 10px;
+            width: 20%;
+        }
+        .availableConnections{
+            padding: 4px;
+            width: 100%
+        }
+        actionBox{
+            position: relative;
+            border: solid black 2px;
+            border-radius: 25%;
+            background-color: whitesmoke;
+            padding: 7px;
+            margin-left: 4px;
+            margin-right: 4px;
+            transition-property: background-color;
+            transition-duration: 500ms;
+        }
+        actionBox:hover{
+            background-color: lightgreen;
+        }
+        actionsList{
+            position: absolute;
+            border: groove darkorange 4px;
+            border-radius: 15%;
+            background-color: orange;
+            padding: 2px;            
+        }
+        .lineInList{
+            position: relative;
+            margin: auto;
+            padding: 8px;
+            text-align: center;
+            background-color: transparent;
+        }
+        hideButton{
+            position: absolute;
+            font-size: 20px;
+            right: 10%;        
+            padding-bottom: -5px;    
+            padding-left: 9px;
+            padding-right: 9px;            
+            background-color: #d9d9d9;
+        }        
+    </style>
+</head>
+<body>
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCQfgpFcSzoIVNICqYot1Y5axv5wd9KRjw&callback=initMap">
+</script>
+<div id="map"></div>
+<div id='info' style='position: absolute;top: 80px;width:100%'>
+<div class="availableDiv" id="workDiv">
+    <h4 style="margin-bottom:4px;margin-top:4px">Список доступных пользователей:</h4>
+    <hr>    
+    <hideButton onmousedown="$(this).css('background-color', '#8c8c8c');" onclick="if(this.innerHTML=='+'){this.innerHTML='-';$('#available').fadeIn()}else {this.innerHTML='+';$('#available').fadeOut()}" ondblclick='window.getSelection().removeAllRanges();' onmousemove="window.getSelection().removeAllRanges();" onmouseup="$(this).css('background-color', '#bfbfbf')" onmouseover="$(this).css('background-color', '#bfbfbf')" onmouseout="$(this).css('background-color', '#d9d9d9')">-</hideButton>
+    <select id="available" class="availableConnections" size='10' onchange="if (this.selectedIndex != -1) createConnection(this.options[this.selectedIndex].value)"></select>
+    <div class="onoffswitch">
+        <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="myonoffswitch" onchange="changePrivacy(this.checked);updatePublicList()">
+        <label class="onoffswitch-label" for="myonoffswitch">
+            <span class="onoffswitch-inner"></span>
+            <span class="onoffswitch-switch"></span>
+        </label>
+    </div>
+</div>
+<div class="lastupdates" id="lastupdates">
+    <hideButton onmousedown="$(this).css('background-color', '#8c8c8c');" onclick="if(this.innerHTML=='+'){this.innerHTML='-';$('#ulListOfUpdates').fadeIn()}else {this.innerHTML='+';$('#ulListOfUpdates').fadeOut()}" ondblclick='window.getSelection().removeAllRanges();' onmousemove="window.getSelection().removeAllRanges();" onmouseup="$(this).css('background-color', '#bfbfbf')" onmouseover="$(this).css('background-color', '#bfbfbf')" onmouseout="$(this).css('background-color', '#d9d9d9')">-</hideButton>
+    <h4 style="margin-bottom:4px;margin-top:4px;padding: 5px">Последние обновления</h4>
+    <hr>
+    <ul id='ulListOfUpdates'>
+        <li style="margin-left: -20px">Добавлен выбор действий по клику на граф (пока работает только на десктопной версии)</li>
+        <hr>
+        <li style="margin-left: -20px">Реализована возможность "лайка" пользователя (через выбор действий). Это влияет на его размеры</li>
+        <hr>
+        <li style="margin-left: -20px">Исправлено over 30 багов. Переписана архитектура.</li>
+        <hr>
+        <li style="margin-left: -20px">Теперь можно скрывать окошки.</li>
+        <hr>
+    </ul>
+</div>
+</div>
+<script type="text/javascript">
+    //DOM-elements    
+    var select = $('#available')[0];
+    var publicSwitch = $('#myonoffswitch')[0];
+    var workDiv = $('#workDiv')[0];
+    var mapDiv = $('#map')[0];    
+
+    //static variables
+    var sizeCoeff = 10;
+
+    //global variables
+    var map;
+    var MyPos;
+    var MyIP;
+    var objects = {};
+    var actions = [];
+
+    actions['reveal'] = {
+        doWith: function(gr){
+            console.log('reveal');
+        }
+    };
+
+    actions['delete'] = {
+        doWith: function(gr){
+            console.log('delete');
+        }
+    };
+
+    actions['block'] = {
+        doWith: function(gr){
+            console.log('block');
+        }
+    };
+
+    actions['chat'] = {
+        doWith: function(gr){
+            console.log('chat');
+        }
+    };
+
+    actions['hide'] = {
+        doWith: function(gr){
+            console.log('hide');
+        }
+    };
+
+    actions['like'] = {
+        doWith: function(gr){
+            new POSTRequest('/like', gr.nick, function(res){console.log(res);updateGraph(gr.nick);});
+        }
+    };
+
+    //start initialization with getting a location
+    function initMap() {
+        map = new google.maps.Map(mapDiv, {
+            center: {lat: 0, lng: 0},
+            zoom: 16
+        });
+
+        //getting your position
+        var gettingTimeout;  //timeout for controlling the time of getting the location
+        if (navigator.geolocation) {
+            console.log('getting location...');
+            navigator.geolocation.getCurrentPosition(function (pos) {
+                clearTimeout(gettingTimeout);
+                console.log('location got...');
+
+                var latlng = {lat: pos.coords.latitude, lng: pos.coords.longitude};
+                MyPos = latlng;
+                map.setCenter(new google.maps.LatLng(latlng.lat, latlng.lng));                               
+
+                new POSTRequest('/newUser', latlng,
+                        function (answer) {
+                            var I = JSON.parse(answer);                                                                  
+                            publicSwitch.checked = I.public;
+                            MyIP = I.ip;                            
+                            createMapsGraph(I);                            
+                            for (var g in I.connections){
+                                var gr = I.connections[g];
+                                gr.ip = g;
+                                createMapsGraph(gr);
+                                visualizeConnectionTo(gr);
+                            }     
+                            //in case of success we start circle updating                            
+                            updatePublicList();
+                            $(document).mouseup(deleteActionList);
+                            setInterval(function(){updatePublicList()}, 5000);
+                        }
+                );
+            });
+
+            gettingTimeout = setTimeout(function () {
+                alert('Не удаётся получить доступ к геоданным.' +
+                ' Проверьте доступ к ним в настройках браузера. Страница будет перезагружена. Если сообщение останется, ' +
+                'закройте и заново откройте вкладку или перезагрузить браузер. ' +
+                '\nP.S. Вот такая вот нестабильность');
+                location.reload();
+            }, 10000);
+        }
+        else alert('Ваше устройство не даёт доступа к геоданным... :(');
+    }
+    
+    function aboutMe(){
+        new GETRequest('/aboutMe', function(res){                                                            
+            var graph = JSON.parse(res);           
+            MyIP = graph.ip;            
+            createMapsGraph(graph);            
+            for (var c in graph.connections){
+                var gr = graph.connections[c];
+                gr.ip = c;                                                
+                createMapsGraph(gr);
+                visualizeConnectionTo(gr);
+            }
+        });
+    }
+
+    //updating list of available graphs
+    function updatePublicList(){
+        GETRequest('/getAvailable',
+                function(res){                                        
+                    res = JSON.parse(res);
+                    var graphPublicity = res.isGraphPublic;
+                    var available = res.available;
+                    var newConnections = res.newConnections;                    
+
+                    publicSwitch.checked = graphPublicity;
+
+                    if (available.length != null && select != document.activeElement){
+                        select.length = 0;
+                        for (var a in available){
+                            select.options[select.options.length] = new Option(available[a], available[a]);
+                        }
+                    }
+                    
+                    if (newConnections != null && newConnections.length > 0){
+                        console.log('new connections!');
+                        for (var c in newConnections) {
+                            console.log(newConnections[c]);
+                            createMapsGraph(newConnections[c])
+                            visualizeConnectionTo(newConnections[c]);
+                        }
+                    }
+                },
+                function(res){console.warn(res);}
+        );
+    }
+
+    //choosing an action for graph
+    function giveActionListFor(gr){
+        deleteActionList(true);
+        var cords = {x: window.event.clientX, y: window.event.clientY};
+        var list = document.createElement('actionsList');
+        list.id = 'actionsList';
+        mapDiv.appendChild(list);
+        var counter = 0;
+        var lines = [];
+        lines[0] = document.createElement('div');
+        lines[0].id = lines.length-1;
+        for (var a in actions){
+            if (counter != 0 && counter % 3 == 0) {
+                lines[lines.length-1].className = 'lineInList';
+                list.appendChild(lines[lines.length-1]);
+                list.appendChild(document.createElement('br'));
+                lines[lines.length] = document.createElement('div');
+                lines[lines.length-1].id = lines.length-1;
+                lines[lines.length-1].className = 'lineInList';                
+            }            
+            actions[a].dom = document.createElement('actionBox');
+            actions[a].dom.innerHTML = a;
+            actions[a].dom.id = a;
+            lines[lines.length-1].appendChild(actions[a].dom);
+
+            actions[a].dom.addEventListener('mouseup',function(){
+                actions[this.id].doWith(gr);
+                deleteActionList(true)
+            });
+
+            counter++;
+        }
+        list.appendChild(lines[lines.length-1]);
+        list.style.top = (cords.y - list.offsetHeight-10) + 'px';
+        list.style.left = (cords.x - list.offsetWidth/2) + 'px';
+        map.setOptions({draggable: false});
+    }
+
+    var deleteTimeOut;
+    function deleteActionList(now){
+        var list = $('#actionsList')[0];
+        if (list == null) return;                
+        
+        clearTimeout(deleteTimeOut);
+        if (now == true) {
+            mapDiv.removeChild(list);
+            map.setOptions({draggable: true})
+            return;
+        }
+        deleteTimeOut = setTimeout(function(){
+            mapDiv.removeChild(list);
+            map.setOptions({draggable: true})
+        }, 1500);
+    }
+
+
+    //create Circle object for Google Maps
+    function createMapsGraph(gr, nick){
+        var idi;   
+        if (nick == null) {
+            idi = gr.ip;                        
+        }
+        else {
+            idi = nick;                        
+        }   
+                        
+        console.log(idi)                        
+                               
+        var color = '#FF0000';
+        if (gr.activityTimeout < 0) color = 'lightgray';
+        objects[idi] = new google.maps.Circle({
+            strokeColor: color,
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: color,
+            fillOpacity: 0.35,
+            map: map,
+            center: gr.pos,
+            radius: (gr.connectionsCount + gr.likes.length + 1)*sizeCoeff
+        });                        
+        objects[idi].nick = idi;                
+        var littleCircle = new google.maps.Circle({
+            strokeColor: 'lightgreen',
+            strokeOpacity: 1,
+            strokeWeight: 1,
+            fillColor: 'lightgreen',
+            fillOpacity: 1,
+            map: map,
+            center: gr.pos,
+            radius: 3
+        });                
+        google.maps.event.addListener(objects[idi], 'mousedown', function(){giveActionListFor(this)});
+        google.maps.event.addListener(littleCircle, 'mousedown', function(){giveActionListFor(this)});        
+        return objects[idi];
+    }
+
+    //to change a privacy of your graph
+    function changePrivacy(value){
+        new POSTRequest('/changePrivacy', value, function(){}, function(err){console.warn(err);});
+    }
+
+    function updateGraph(ip){
+        new POSTRequest('/aboutGraph', ip, function(res){
+            var graph = JSON.parse(res);
+            var gr = objects[ip];
+
+            gr.setRadius((graph.connectionsCount + graph.likes.length + 1)*sizeCoeff);                          
+        }, function(){});
+    }
+    
+    function updateMe(){
+        new GETRequest('/aboutMe', function(res){
+            var graph = JSON.parse(res);
+            var gr = objects[MyIP];
+
+
+            console.log(graph);
+            console.log(gr);
+            gr.setRadius((graph.connectionsCount + graph.likes.length + 1)*sizeCoeff);                                                       
+        }, function(){});
+    }
+
+    //create a path for Google Maps
+    function visualizeConnectionTo(gr){
+        var connection = new google.maps.Polyline({
+            path: [MyPos, gr.pos],
+            geodesic: true,
+            strokeColor: 'green',
+            strokeOpacity: 0.5,
+            strokeWeight: 1
+        });
+
+        objects[(MyIP + gr.ip)] = connection;
+        connection.setMap(map);
+    }
+    function visualizeConnection(gr1, gr2){
+        var connection = new google.maps.Polyline({
+            path: [gr1.pos, gr2.pos],
+            geodesic: true,
+            strokeColor: 'green',
+            strokeOpacity: 0.5,
+            strokeWeight: 1
+        });
+
+        objects[(gr1.ip+gr2.ip)] = connection;
+        connection.setMap(map);
+    }
+
+    //working with connections to other graphs
+    function createConnection(ip){
+        new POSTRequest('/newConnection', ip,
+                function(res,code){                                                                                              
+                    var gr = JSON.parse(res);                    
+                    createMapsGraph(gr);                    
+                    visualizeConnectionTo(gr);
+                    updateMe();                                                             
+                },
+                function(res){
+                    alert(res);
+                    console.warn(res);
+                }, true);
+    }
+    function closeConnection(ip){
+        new POSTRequest('/closeConnection', ip,
+                function(res){
+                    console.log(res);
+                },
+                function(res){
+                    console.log(res);
+                }, true);
+    }
+
+    //classes for two types of request
+    function GETRequest(request, funL, funE){
+        var onloadFunction = funL;
+        var onerrorFunction = funE;
+
+        if (typeof onerrorFunction != 'function') onerrorFunction = function(){};
+        if (typeof onloadFunction != 'function') onloadFunction = function(){};
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', request, true);
+        xhr.onload = function(){if (xhr.status == 299)location.reload();if(xhr.status>=400){onerrorFunction(this.responseText);return;}onloadFunction(this.responseText, xhr.status);};
+        xhr.onerror = function(){if (xhr.status == 299)location.reload();onerrorFunction(this.responseText)};
+
+        xhr.send();              
+    }
+    function POSTRequest(request, data, funL, funE){
+        var sData;
+        if (typeof data == 'object') sData = JSON.stringify(data);
+        else sData = data;
+
+        var onloadFunction = funL;
+        var onerrorFunction = funE;
+
+        if (typeof onerrorFunction != 'function') onerrorFunction = function(){};
+        if (typeof onloadFunction != 'function') onloadFunction = function(){};
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', request, true);
+        xhr.onload = function(){if (xhr.status == 299)location.reload();if(xhr.status>=400){onerrorFunction(this.responseText);return;}onloadFunction(this.responseText, xhr.status);};
+        xhr.onerror = function(){if (xhr.status == 299)location.reload();onerrorFunction(this.responseText)};
+        xhr.send(sData);
+    }
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
